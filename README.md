@@ -1,4 +1,4 @@
-# TradeVantage AI (ET Signal Radar) 🚀
+# ET-Signal-Radar 🚀📈
 
 An institutional-grade AI-powered stock screening dashboard that bridges the gap between retail trading and quantum-level analysis. Built for the ET AI Hackathon 2026.
 

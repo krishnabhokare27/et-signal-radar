@@ -2,9 +2,7 @@
 
 An institutional-grade AI-powered stock screening dashboard that bridges the gap between retail trading and quantum-level analysis. Built for the ET AI Hackathon 2026.
 
-TradeVantage AI scans the NSE universe (500+ stocks) in real-time, executing high-conviction pattern recognition to deliver actionable trading signals without violating SEBI regulations.
-
-![TradeVantage AI Dashboard](dashboard_preview.png)
+ET-Signal-Radar scans the NSE universe (500+ stocks) in real-time, executing high-conviction pattern recognition to deliver actionable trading signals without violating SEBI regulations.
 
 ## 📌 Features
 

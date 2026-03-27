@@ -31,8 +31,8 @@ ET-Signal-Radar scans the NSE universe (500+ stocks) in real-time, executing hig
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/TradeVantage-AI.git
-    cd TradeVantage-AI/et-signal-radar
+    git clone https://github.com/krishnabhokare27/et-signal-radar.git
+    cd et-signal-radar
     ```
 
 2.  **Install dependencies:**

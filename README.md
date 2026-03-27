@@ -50,7 +50,7 @@ ET-Signal-Radar scans the NSE universe (500+ stocks) in real-time, executing hig
 
 4.  **Run the Backend API:**
     ```bash
-    python -m uvicorn api:app --reload --port 8000
+    python run.py
     ```
 
 5.  **View the Dashboard:**

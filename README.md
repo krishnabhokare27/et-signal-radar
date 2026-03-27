@@ -35,18 +35,25 @@ ET-Signal-Radar scans the NSE universe (500+ stocks) in real-time, executing hig
     cd et-signal-radar
     ```
 
-2.  **Install dependencies:**
+
+2. **Get Free API Keys**
+| Key | Where | Time |
+|-----|-------|------|
+| `GROQ_API_KEY` | [console.groq.com](https://console.groq.com) | 2 min |
+| `TELEGRAM_BOT_TOKEN` | [@BotFather on Telegram](https://t.me/BotFather) | 2 min |
+
+3.  **Install dependencies:**
     ```bash
     pip install fastapi uvicorn yfinance pandas
     pip install pandas-ta --no-deps
     ```
 
-3.  **Run the Backend API:**
+4.  **Run the Backend API:**
     ```bash
     python -m uvicorn api:app --reload --port 8000
     ```
 
-4.  **View the Dashboard:**
+5.  **View the Dashboard:**
     Open your browser and navigate to `http://127.0.0.1:8000`
 
 ## 📁 Architecture Overview

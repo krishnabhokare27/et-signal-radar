@@ -36,7 +36,7 @@ ET-Signal-Radar scans the NSE universe (500+ stocks) in real-time, executing hig
     ```
 
 
-2. **Get Free API Keys**
+### 2. Get Free API Keys
 | Key | Where | Time |
 |-----|-------|------|
 | `GROQ_API_KEY` | [console.groq.com](https://console.groq.com) | 2 min |

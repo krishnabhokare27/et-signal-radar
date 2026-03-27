@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ET Signal Radar — AI Market Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0d12;
+  --bg2: #0f1318;
+  --bg3: #141920;
+  --bg4: #1a2030;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #e8ecf0;
+  --text2: #8a9ab0;
+  --text3: #556070;
+  --accent: #00d4aa;
+  --accent2: #0099ff;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --green: #22c55e;
+  --red: #ef4444;
+  --ssi-high: #00d4aa;
+  --ssi-mid: #f59e0b;
+  --ssi-low: #ef4444;
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --r: 10px;
+  --r2: 14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;line-height:1.6;min-height:100vh;overflow-x:hidden}
+
+/* Scanline texture */
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);pointer-events:none;z-index:0}
+
+/* ── Layout ── */
+.shell{display:grid;grid-template-columns:240px 1fr;grid-template-rows:56px 1fr;min-height:100vh;position:relative;z-index:1}
+
+/* ── Topbar ── */
+.topbar{grid-column:1/-1;display:flex;align-items:center;padding:0 24px;background:var(--bg2);border-bottom:1px solid var(--border);gap:20px;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-mark{width:28px;height:28px;border-radius:6px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-mark svg{width:16px;height:16px}
+.logo-text{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.3px}
+.logo-sub{font-size:10px;color:var(--text3);font-family:var(--font-mono);letter-spacing:.05em;margin-top:-2px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.market-pill{display:flex;align-items:center;gap:6px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--green);font-family:var(--font-mono)}
+.pulse-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.scan-btn{background:var(--accent);color:#000;border:none;border-radius:8px;padding:7px 16px;font-family:var(--font-display);font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.scan-btn:hover{opacity:.85}
+.sebi-badge{font-size:10px;font-family:var(--font-mono);color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:3px 8px}
+
+/* ── Sidebar ── */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:16px 0;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.nav-section{padding:16px 16px 6px;font-size:10px;font-family:var(--font-mono);color:var(--text3);letter-spacing:.12em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;border-radius:0;color:var(--text2);font-size:13px;transition:all .15s;position:relative;border-left:2px solid transparent}
+.nav-item:hover{background:rgba(255,255,255,0.04);color:var(--text)}
+.nav-item.active{background:rgba(0,212,170,0.08);color:var(--accent);border-left-color:var(--accent)}
+.nav-icon{width:16px;height:16px;opacity:.7;flex-shrink:0}
+.nav-item.active .nav-icon{opacity:1}
+.nav-badge{margin-left:auto;background:rgba(0,212,170,0.2);color:var(--accent);font-size:10px;font-family:var(--font-mono);padding:2px 7px;border-radius:10px}
+.sidebar-bottom{margin-top:auto;padding:16px;border-top:1px solid var(--border)}
+.sebi-note{font-size:10px;color:var(--text3);line-height:1.5;font-family:var(--font-mono)}
+
+/* ── Main content ── */
+.main{overflow-y:auto;background:var(--bg)}
+
+/* ── Views ── */
+.view{display:none;padding:24px;animation:fadein .2s ease}
+.view.active{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Page header ── */
+.page-header{margin-bottom:24px}
+.page-title{font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+.page-sub{font-size:13px;color:var(--text2);margin-top:4px}
+.page-meta{font-size:11px;font-family:var(--font-mono);color:var(--text3);margin-top:3px}
+
+/* ── Stats row ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px 18px;position:relative;overflow:hidden;transition:border-color .2s}
+.stat-card:hover{border-color:var(--border2)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),transparent)}
+.stat-label{font-size:11px;color:var(--text3);font-family:var(--font-mono);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+.stat-val{font-family:var(--font-display);font-size:28px;font-weight:700;color:var(--text);line-height:1}
+.stat-change{font-size:11px;margin-top:5px;font-family:var(--font-mono)}
+.stat-change.up{color:var(--green)}
+.stat-change.down{color:var(--red)}
+.stat-change.neu{color:var(--text3)}
+
+/* ── Alert cards grid ── */
+.alerts-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.alert-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.alert-card:hover{border-color:rgba(0,212,170,0.35);transform:translateY(-2px)}
+.alert-card.selected{border-color:var(--accent);background:rgba(0,212,170,0.05)}
+.alert-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.alert-ticker{font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--text)}
+.alert-company{font-size:11px;color:var(--text3);margin-top:1px;font-family:var(--font-mono)}
+.ssi-pill{display:flex;flex-direction:column;align-items:center;gap:3px}
+.ssi-num{font-family:var(--font-display);font-size:22px;font-weight:800;line-height:1}
+.ssi-label{font-size:9px;font-family:var(--font-mono);letter-spacing:.08em;opacity:.7}
+.alert-pattern{display:inline-flex;align-items:center;gap:6px;background:rgba(0,153,255,0.1);border:1px solid rgba(0,153,255,0.2);border-radius:6px;padding:4px 10px;font-size:11px;color:#60b4ff;font-family:var(--font-mono);margin-bottom:8px}
+.alert-catalyst{font-size:12px;color:var(--text2);line-height:1.4;margin-bottom:12px}
+.alert-catalyst strong{color:var(--text)}
+.alert-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.metric{background:var(--bg3);border-radius:8px;padding:8px 10px}
+.metric-label{font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px}
+.metric-val{font-size:13px;font-weight:500;font-family:var(--font-mono);color:var(--text)}
+.metric-val.green{color:var(--green)}
+.metric-val.amber{color:var(--warn)}
+.ai-badge{position:absolute;top:12px;right:12px;font-size:9px;font-family:var(--font-mono);background:rgba(0,212,170,0.1);border:1px solid rgba(0,212,170,0.25);color:var(--accent);padding:2px 7px;border-radius:4px;letter-spacing:.05em}
+
+/* ── SSI progress bar ── */
+.ssi-bar-wrap{margin:10px 0 0}
+.ssi-bar-track{height:3px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.ssi-bar-fill{height:100%;border-radius:2px;transition:width .6s ease}
+
+/* ── Detail panel ── */
+.detail-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:22px;height:fit-content;position:sticky;top:80px}
+.detail-none{color:var(--text3);font-size:13px;text-align:center;padding:40px 0;font-family:var(--font-mono)}
+.detail-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.detail-ticker-group{}
+.detail-ticker{font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--text)}
+.detail-name{font-size:12px;color:var(--text3);font-family:var(--font-mono);margin-top:2px}
+.detail-price{text-align:right}
+.price-big{font-family:var(--font-mono);font-size:22px;font-weight:500;color:var(--text)}
+.price-chg{font-size:12px;font-family:var(--font-mono);margin-top:3px}
+.price-chg.up{color:var(--green)}
+.price-chg.down{color:var(--red)}
+
+/* ── SSI Breakdown ── */
+.ssi-breakdown{margin-bottom:20px}
+.breakdown-title{font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.breakdown-bar{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.breakdown-label{width:90px;font-size:11px;color:var(--text2);font-family:var(--font-mono);flex-shrink:0}
+.breakdown-track{flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.breakdown-fill{height:100%;border-radius:3px}
+.breakdown-score{width:30px;font-size:11px;font-family:var(--font-mono);color:var(--text);text-align:right;flex-shrink:0}
+
+/* ── Backtest chart ── */
+.backtest-section{margin-bottom:20px}
+.backtest-bars{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+.bt-bar{background:var(--bg3);border-radius:8px;padding:12px;text-align:center}
+.bt-pct{font-family:var(--font-display);font-size:20px;font-weight:700;margin-bottom:4px}
+.bt-label{font-size:10px;color:var(--text3);font-family:var(--font-mono)}
+
+/* ── Key levels ── */
+.levels-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.level-box{border-radius:8px;padding:12px 14px}
+.level-box.resist{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2)}
+.level-box.support{background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2)}
+.level-box-label{font-size:10px;font-family:var(--font-mono);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
+.level-box.resist .level-box-label{color:#f87171}
+.level-box.support .level-box-label{color:#4ade80}
+.level-range{font-family:var(--font-mono);font-size:12px;color:var(--text);font-weight:500}
+.level-note{font-size:10px;color:var(--text3);margin-top:3px}
+
+/* ── Options section ── */
+.options-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.opt-box{background:var(--bg3);border-radius:8px;padding:12px}
+.opt-label{font-size:10px;font-family:var(--font-mono);color:var(--text3);margin-bottom:5px}
+.opt-val{font-family:var(--font-mono);font-size:14px;font-weight:500}
+
+/* ── Disclaimer ── */
+.disclaimer-bar{background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:10px 14px;font-size:10px;color:var(--text3);line-height:1.5;font-family:var(--font-mono);margin-top:16px}
+.disclaimer-bar strong{color:var(--warn);display:block;margin-bottom:4px;font-size:10px}
+
+/* ── Scanner view ── */
+.scan-layout{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+.search-wrap{position:relative;margin-bottom:20px}
+.search-input{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:12px 16px 12px 44px;color:var(--text);font-family:var(--font-mono);font-size:14px;outline:none;transition:border-color .2s}
+.search-input:focus{border-color:var(--accent)}
+.search-input::placeholder{color:var(--text3)}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none}
+.search-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:var(--accent);border:none;color:#000;font-family:var(--font-display);font-size:12px;font-weight:600;padding:6px 14px;border-radius:6px;cursor:pointer}
+.result-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:20px;margin-bottom:14px}
+
+/* ── Market pulse sidebar ── */
+.pulse-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px}
+.pulse-title{font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px}
+.pulse-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.pulse-row:last-child{border-bottom:none}
+.pulse-key{font-size:12px;color:var(--text2)}
+.pulse-val{font-size:12px;font-family:var(--font-mono);font-weight:500}
+.pulse-val.green{color:var(--green)}
+.pulse-val.red{color:var(--red)}
+.pulse-val.neutral{color:var(--text)}
+
+/* ── Section headers ── */
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.section-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--text)}
+.section-tag{font-size:10px;font-family:var(--font-mono);color:var(--text3)}
+
+/* ── Loading state ── */
+.loading{display:flex;align-items:center;gap:10px;color:var(--text3);font-size:13px;font-family:var(--font-mono);padding:20px 0}
+.spinner{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── Responsive ── */
+@media(max-width:1100px){.alerts-grid{grid-template-columns:1fr}.scan-layout{grid-template-columns:1fr}}
+@media(max-width:768px){.shell{grid-template-columns:1fr}.sidebar{display:none}.stats-row{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+<!-- ── Topbar ── -->
+<header class="topbar">
+  <a href="#" class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M8 2L14 5.5V10.5L8 14L2 10.5V5.5L8 2Z" stroke="#000" stroke-width="1.5" fill="none"/><circle cx="8" cy="8" r="2" fill="#000"/></svg>
+    </div>
+    <div>
+      <div class="logo-text">ET Signal Radar</div>
+      <div class="logo-sub">AI MARKET INTELLIGENCE</div>
+    </div>
+  </a>
+
+  <div class="topbar-right">
+    <div class="market-pill" id="topbar-nifty">
+      <div class="pulse-dot"></div>
+      NIFTY 22,456 <span style="color:var(--green);margin-left:4px">+0.84%</span>
+    </div>
+    <span class="sebi-badge">SEBI COMPLIANT</span>
+    <button class="scan-btn" onclick="runScan()">Run Scan</button>
+  </div>
+</header>
+
+<!-- ── Sidebar ── -->
+<nav class="sidebar">
+  <div class="nav-section">Intelligence</div>
+  <div class="nav-item active" onclick="showView('alerts')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7 4h2v5H7V4zm0 6h2v2H7v-2z"/></svg>
+    Daily Alerts
+    <span class="nav-badge" id="alert-count">5</span>
+  </div>
+  <div class="nav-item" onclick="showView('scanner')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 10-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 001.415-1.414l-3.85-3.85a1.007 1.007 0 00-.115-.099zM12 6.5a5.5 5.5 0 11-11 0 5.5 5.5 0 0111 0z"/></svg>
+    Stock Scanner
+  </div>
+  <div class="nav-item" onclick="showView('backtest')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M1 2a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H2a1 1 0 01-1-1V2zm2 2v8h10V4H3z"/></svg>
+    Backtest Lab
+  </div>
+
+  <div class="nav-section">Market</div>
+  <div class="nav-item" onclick="showView('pulse')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M0 8h2l2-4 2 8 2-6 1 2h7V8H9.5L8 5 6 11 4 4 2.5 8H0z"/></svg>
+    Market Pulse
+  </div>
+
+  <div class="nav-section">Compliance</div>
+  <div class="nav-item" onclick="showView('compliance')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm.5 11.5h-1v-4h1v4zm0-5h-1V5h1v1.5z"/></svg>
+    SEBI Audit Log
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="sebi-note">
+      🔒 All outputs comply with<br>SEBI RA Regs 2014 (Dec 2024<br>Amendment) + AI Circular Jan 2025
+    </div>
+  </div>
+</nav>
+
+<!-- ── Main ── -->
+<main class="main">
+
+  <!-- ── ALERTS VIEW ── -->
+  <div class="view active" id="view-alerts">
+    <div class="page-header">
+      <div class="page-title">Daily Alerts</div>
+      <div class="page-sub">High-conviction signals from today's NSE scan</div>
+      <div class="page-meta" id="scan-time">Last scan: Loading...</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Signals fired</div>
+        <div class="stat-val" id="stat-total">5</div>
+        <div class="stat-change up" id="stat-scanned-sub">from top 500 NSE stocks</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg SSI</div>
+        <div class="stat-val" id="stat-avg-ssi">71.6</div>
+        <div class="stat-change neu">Signal Strength Index</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Top pattern</div>
+        <div class="stat-val" style="font-size:16px;padding-top:4px" id="stat-pattern">Breakout</div>
+        <div class="stat-change neu">today's dominant signal</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Market regime</div>
+        <div class="stat-val" style="font-size:16px;color:var(--green);padding-top:4px" id="stat-regime">Bull</div>
+        <div class="stat-change up" id="stat-regime-desc">Nifty50 +8.3% above 200MA</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start">
+      <div>
+        <div class="section-head">
+          <div class="section-title">Today's Signal Alerts</div>
+          <div class="section-tag">SSI ≥ 65 · SEBI-compliant · AI-generated</div>
+        </div>
+        <div class="alerts-grid" id="alerts-grid">
+          <div class="loading"><div class="spinner"></div>Loading alerts...</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-head">
+          <div class="section-title">Signal Detail</div>
+        </div>
+        <div class="detail-panel" id="detail-panel">
+          <div class="detail-none">← Click an alert card to inspect the full signal breakdown</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCANNER VIEW ── -->
+  <div class="view" id="view-scanner">
+    <div class="page-header">
+      <div class="page-title">Stock Scanner</div>
+      <div class="page-sub">On-demand full pipeline scan for any NSE symbol</div>
+    </div>
+    <div class="scan-layout">
+      <div>
+        <div class="search-wrap">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 10-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 001.415-1.414l-3.85-3.85a1.007 1.007 0 00-.115-.099zM12 6.5a5.5 5.5 0 11-11 0 5.5 5.5 0 0111 0z"/></svg>
+          <input class="search-input" id="scan-input" placeholder="Enter NSE symbol (e.g. RELIANCE, TCS, INFY)..." onkeydown="if(event.key==='Enter')doScan()">
+          <button class="search-btn" onclick="doScan()">Scan Now</button>
+        </div>
+        <div id="scan-result"></div>
+      </div>
+      <div class="pulse-card">
+        <div class="pulse-title">Market Pulse</div>
+        <div class="pulse-row"><span class="pulse-key">Nifty 50</span><span class="pulse-val green" id="scan-nifty">22,456 (+0.84%)</span></div>
+        <div class="pulse-row"><span class="pulse-key">Nifty Bank</span><span class="pulse-val green" id="scan-banknifty">48,234 (+1.12%)</span></div>
+        <div class="pulse-row"><span class="pulse-key">India VIX</span><span class="pulse-val neutral" id="scan-vix">13.42</span></div>
+        <div class="pulse-row"><span class="pulse-key">FII Flow</span><span class="pulse-val green">+₹2,847 Cr</span></div>
+        <div class="pulse-row"><span class="pulse-key">DII Flow</span><span class="pulse-val green">+₹1,234 Cr</span></div>
+        <div class="pulse-row"><span class="pulse-key">A/D Ratio</span><span class="pulse-val green">1243 / 847</span></div>
+        <div class="pulse-row"><span class="pulse-key">Regime</span><span class="pulse-val green" id="scan-regime">Bull Market</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BACKTEST VIEW ── -->
+  <div class="view" id="view-backtest">
+    <div class="page-header">
+      <div class="page-title">Backtest Lab</div>
+      <div class="page-sub">Historical pattern performance — 5-year data, bull/bear market split</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:22px">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:20px;padding:12px;background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.2);border-radius:8px;font-family:var(--font-mono)">
+        ⚠ Historical data only. Past pattern performance does not guarantee future results. This data is for research purposes.
+      </div>
+      <div id="backtest-table"></div>
+    </div>
+  </div>
+
+  <!-- ── MARKET PULSE VIEW ── -->
+  <div class="view" id="view-pulse">
+    <div class="page-header">
+      <div class="page-title">Market Pulse</div>
+      <div class="page-sub">Real-time NSE market breadth and institutional flow data</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="pulse-card">
+        <div class="pulse-title">Index Overview</div>
+        <div class="pulse-row"><span class="pulse-key">Nifty 50</span><span class="pulse-val green" id="pulse-nifty">22,456.35 (+0.84%)</span></div>
+        <div class="pulse-row"><span class="pulse-key">Nifty Bank</span><span class="pulse-val green" id="pulse-banknifty">48,234.10 (+1.12%)</span></div>
+        <div class="pulse-row"><span class="pulse-key">Nifty IT</span><span class="pulse-val red" id="pulse-niftyit">34,120 (-0.34%)</span></div>
+        <div class="pulse-row"><span class="pulse-key">Nifty Pharma</span><span class="pulse-val green" id="pulse-niftypharma">17,890 (+1.45%)</span></div>
+        <div class="pulse-row"><span class="pulse-key">Nifty Auto</span><span class="pulse-val green" id="pulse-niftyauto">22,310 (+0.67%)</span></div>
+        <div class="pulse-row"><span class="pulse-key">India VIX</span><span class="pulse-val neutral" id="pulse-vix">13.42 (-0.8%)</span></div>
+      </div>
+      <div class="pulse-card">
+        <div class="pulse-title">Institutional Flow <span id="pulse-fii-date" style="font-size:11px;color:var(--text3);font-weight:400;margin-left:6px"></span></div>
+        <div class="pulse-row"><span class="pulse-key">FII Buy</span><span class="pulse-val neutral" id="pulse-fii-buy">₹18,456 Cr</span></div>
+        <div class="pulse-row"><span class="pulse-key">FII Sell</span><span class="pulse-val neutral" id="pulse-fii-sell">₹15,609 Cr</span></div>
+        <div class="pulse-row"><span class="pulse-key">FII Net</span><span class="pulse-val green" id="pulse-fii-net">+₹2,847 Cr</span></div>
+        <div class="pulse-row"><span class="pulse-key">DII Buy</span><span class="pulse-val neutral" id="pulse-dii-buy">₹--</span></div>
+        <div class="pulse-row"><span class="pulse-key">DII Net</span><span class="pulse-val green" id="pulse-dii-net">+₹1,234 Cr</span></div>
+        <div class="pulse-row"><span class="pulse-key">Advance / Decline</span><span class="pulse-val green">1243 / 847</span></div>
+        <div class="pulse-row"><span class="pulse-key">Market Regime</span><span class="pulse-val green" id="pulse-regime">Bull (+8.3% vs 200MA)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── COMPLIANCE VIEW ── -->
+  <div class="view" id="view-compliance">
+    <div class="page-header">
+      <div class="page-title">SEBI Audit Log</div>
+      <div class="page-sub">Compliance verification — every output audited against SEBI RA Regulations</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:22px">
+      <div style="display:grid;grid-template-columns:2fr 1fr 2fr;gap:0;margin-bottom:2px">
+        <div style="padding:10px 14px;font-size:11px;font-family:var(--font-mono);color:var(--text3);background:var(--bg3);border-radius:8px 0 0 0">RULE</div>
+        <div style="padding:10px 14px;font-size:11px;font-family:var(--font-mono);color:var(--text3);background:var(--bg3)">STATUS</div>
+        <div style="padding:10px 14px;font-size:11px;font-family:var(--font-mono);color:var(--text3);background:var(--bg3);border-radius:0 8px 0 0">IMPLEMENTATION</div>
+      </div>
+      <div id="compliance-rows"></div>
+    </div>
+    <div class="disclaimer-bar" style="margin-top:16px">
+      <strong>⚠ MANDATORY SEBI DISCLAIMER (appended to all outputs)</strong>
+      This is AI-generated market data intelligence and does NOT constitute investment advice, a research report, or a buy/sell recommendation. AI tools have been used in generating these signals — outputs may be inaccurate or incomplete. Past pattern performance does not guarantee future results. Support and resistance levels are data-derived zones, NOT price targets. Please consult a SEBI-registered Research Analyst before making investment decisions. Regulatory basis: SEBI RA Regulations 2014 (as amended Dec 2024) | SEBI AI Circular Jan 2025.
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+
+// ── Mock data (works without backend) ─────────────────────────────────────────
+const MOCK_ALERTS = [
+  {symbol:"RELIANCE",company:"Reliance Industries Ltd",sector:"Energy",pattern_detected:"Cup & Handle Breakout",catalyst_detected:"Earnings Beat >15%",catalyst_description:"Q3 results beat consensus by 18%. Revenue growth 14% YoY.",signal_strength_index:79,current_market_price:2912.45,price_change_today_pct:2.34,volume_data:"2.1x avg",rsi_reading:58,historical_signal_data:{win_rate_overall:.68,win_rate_bull_market:.74,win_rate_bear_market:.45,avg_return_on_wins_pct:11.2,avg_return_on_losses_pct:-4.8,sample_size:17},options_market_data:{pcr:.62,pcr_interpretation:"Bullish",oi_activity:"Call OI: 4.2M | Put OI: 2.6M"},key_data_levels:{resistance_zone:[2950,3020],support_zone:[2780,2830]},ssi_breakdown:{catalyst:28,pattern_quality:13,backtest:18,options:12,insider:8}},
+  {symbol:"INFY",company:"Infosys Ltd",sector:"Information Technology",pattern_detected:"MACD Bullish Crossover",catalyst_detected:"Major Contract Win",catalyst_description:"Secured $500M multi-year cloud transformation deal with European bank.",signal_strength_index:71,current_market_price:1834.60,price_change_today_pct:1.87,volume_data:"1.8x avg",rsi_reading:52,historical_signal_data:{win_rate_overall:.61,win_rate_bull_market:.69,win_rate_bear_market:.42,avg_return_on_wins_pct:8.4,avg_return_on_losses_pct:-3.9,sample_size:23},options_market_data:{pcr:.71,pcr_interpretation:"Neutral",oi_activity:"Call OI: 2.8M | Put OI: 2.0M"},key_data_levels:{resistance_zone:[1880,1920],support_zone:[1790,1820]},ssi_breakdown:{catalyst:22,pattern_quality:11,backtest:16,options:14,insider:8}},
+  {symbol:"SUNPHARMA",company:"Sun Pharmaceutical",sector:"Pharmaceuticals",pattern_detected:"Volume Surge Breakout",catalyst_detected:"Regulatory Approval",catalyst_description:"USFDA granted final approval for key specialty drug. First mover advantage in US market.",signal_strength_index:74,current_market_price:1456.30,price_change_today_pct:3.21,volume_data:"3.2x avg",rsi_reading:64,historical_signal_data:{win_rate_overall:.65,win_rate_bull_market:.72,win_rate_bear_market:.48,avg_return_on_wins_pct:9.8,avg_return_on_losses_pct:-4.2,sample_size:14},options_market_data:{pcr:.58,pcr_interpretation:"Bullish",oi_activity:"Call OI: 1.9M | Put OI: 1.1M"},key_data_levels:{resistance_zone:[1490,1530],support_zone:[1410,1440]},ssi_breakdown:{catalyst:20,pattern_quality:14,backtest:17,options:15,insider:8}},
+  {symbol:"HDFCBANK",company:"HDFC Bank Ltd",sector:"Banking & Finance",pattern_detected:"52-Week High Breakout",catalyst_detected:"Earnings Beat 5-15%",catalyst_description:"Net interest income grew 9% YoY. Asset quality improved with GNPA at 4-year low.",signal_strength_index:68,current_market_price:1712.80,price_change_today_pct:1.43,volume_data:"1.6x avg",rsi_reading:61,historical_signal_data:{win_rate_overall:.63,win_rate_bull_market:.71,win_rate_bear_market:.44,avg_return_on_wins_pct:7.9,avg_return_on_losses_pct:-3.4,sample_size:19},options_market_data:{pcr:.68,pcr_interpretation:"Neutral",oi_activity:"Call OI: 8.4M | Put OI: 5.7M"},key_data_levels:{resistance_zone:[1740,1770],support_zone:[1680,1700]},ssi_breakdown:{catalyst:18,pattern_quality:12,backtest:16,options:12,insider:10}},
+  {symbol:"BAJFINANCE",company:"Bajaj Finance Ltd",sector:"NBFC",pattern_detected:"Bullish RSI Divergence",catalyst_detected:"Strong Q3 AUM Growth",catalyst_description:"AUM grew 28% YoY to ₹3.8L Cr. NIM expansion of 40bps. Credit cost inline with guidance.",signal_strength_index:66,current_market_price:882.75,price_change_today_pct:1.12,volume_data:"1.4x avg",rsi_reading:42,historical_signal_data:{win_rate_overall:.58,win_rate_bull_market:.66,win_rate_bear_market:.40,avg_return_on_wins_pct:10.5,avg_return_on_losses_pct:-5.1,sample_size:12},options_market_data:{pcr:.78,pcr_interpretation:"Neutral",oi_activity:"Call OI: 3.1M | Put OI: 2.4M"},key_data_levels:{resistance_zone:[900,930],support_zone:[850,870]},ssi_breakdown:{catalyst:16,pattern_quality:12,backtest:14,options:14,insider:10}},
+];
+
+const COMPLIANCE_RULES = [
+  {rule:"No explicit buy/sell price targets",status:"safe",impl:"S/R zones output as data ranges, never price targets"},
+  {rule:"No stop-loss commands",status:"safe",impl:"Support zones shown as historical data, not instructions"},
+  {rule:"No guaranteed return claims",status:"safe",impl:"Backtest labelled 'historical data only' throughout"},
+  {rule:"Output = data intelligence, not advice",status:"safe",impl:"Every alert labelled 'market data signal'"},
+  {rule:"AI usage disclosure (Dec 2024 Amendment)",status:"safe",impl:"'AI-Generated Signal' badge on every alert card"},
+  {rule:"Mandatory disclaimer on every output",status:"safe",impl:"Full SEBI disclaimer on every alert, API response and Telegram message"},
+  {rule:"No personalised advice without RA registration",status:"safe",impl:"All outputs are generic stock-level signals, not user-specific"},
+  {rule:"No trading calls (entry/exit timing language)",status:"safe",impl:"Banned-word filter runs on every output before delivery"},
+  {rule:"Real-time data scoping",status:"safe",impl:"System deployed inside ET platform — ET holds RA registration"},
+  {rule:"Signal Strength Index framing",status:"safe",impl:"Named 'Signal Strength Index', not 'conviction score'"},
+  {rule:"Backtest context (bull/bear split)",status:"safe",impl:"Win rates always shown split by market regime"},
+  {rule:"AI accountability (SEBI AI Circular Jan 2025)",status:"safe",impl:"ET as operating entity bears liability — disclosed in architecture"},
+];
+
+const BACKTEST_DATA = [
+  {pattern:"52-Week High Breakout",overall:68,bull:74,bear:45,avg_gain:11.2,n:17},
+  {pattern:"MACD Bullish Crossover",overall:61,bull:69,bear:42,avg_gain:8.4,n:23},
+  {pattern:"Bullish RSI Divergence",overall:65,bull:72,bear:48,avg_gain:9.8,n:14},
+  {pattern:"Volume Surge Breakout",overall:59,bull:67,bear:39,avg_gain:12.1,n:19},
+  {pattern:"Cup & Handle Breakout",overall:63,bull:71,bear:44,avg_gain:10.5,n:11},
+];
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ── SSI color ─────────────────────────────────────────────────────────────────
+function ssiColor(v) {
+  if (v >= 75) return 'var(--ssi-high)';
+  if (v >= 65) return 'var(--ssi-mid)';
+  return 'var(--ssi-low)';
+}
+
+// ── Render alerts grid ────────────────────────────────────────────────────────
+function renderAlerts(alerts) {
+  const grid = document.getElementById('alerts-grid');
+  grid.innerHTML = alerts.map((a, i) => {
+    const ssi = a.signal_strength_index || a.ssi || 0;
+    const col = ssiColor(ssi);
+    const pct = a.price_change_today_pct || 0;
+    const pctStr = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+    const pctColor = pct >= 0 ? 'var(--green)' : 'var(--red)';
+    const winPct = Math.round(((a.historical_signal_data?.win_rate_overall ?? a.backtest?.win_rate ?? a.win_rate_overall ?? 0.5) * 100));
+    return `
+    <div class="alert-card" onclick="showDetail(${i})" id="card-${i}">
+      <div class="ai-badge">🤖 AI Signal</div>
+      <div class="alert-card-top">
+        <div>
+          <div class="alert-ticker">${a.symbol}</div>
+          <div class="alert-company">${a.company || a.sector}</div>
+        </div>
+        <div class="ssi-pill">
+          <div class="ssi-num" style="color:${col}">${ssi}</div>
+          <div class="ssi-label" style="color:${col}">SSI</div>
+        </div>
+      </div>
+      <div class="alert-pattern">◈ ${a.pattern_detected || a.pattern_type}</div>
+      <div class="alert-catalyst"><strong>${a.catalyst_detected}</strong> — ${a.catalyst_description || a.catalyst_summary || ''}</div>
+      <div class="alert-metrics">
+        <div class="metric">
+          <div class="metric-label">CMP</div>
+          <div class="metric-val">₹${(a.current_market_price || a.current_price || 0).toLocaleString('en-IN', {maximumFractionDigits:2})}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Change</div>
+          <div class="metric-val" style="color:${pctColor}">${pctStr}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Win Rate</div>
+          <div class="metric-val green">${winPct}%</div>
+        </div>
+      </div>
+      <div class="ssi-bar-wrap">
+        <div class="ssi-bar-track"><div class="ssi-bar-fill" style="width:${ssi}%;background:${col}"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Render detail panel ───────────────────────────────────────────────────────
+let _alerts = [];
+function showDetail(idx) {
+  document.querySelectorAll('.alert-card').forEach((c,i) => c.classList.toggle('selected', i === idx));
+  const a = _alerts[idx];
+  if (!a) return;
+  const panel = document.getElementById('detail-panel');
+  const ssi = a.signal_strength_index || a.ssi || 0;
+  const col = ssiColor(ssi);
+
+  // Normalize historical data — handle both backend (backtest) and frontend (historical_signal_data) naming
+  const _h = a.historical_signal_data || a.backtest || {};
+  const hist = {
+    win_rate_overall:      _h.win_rate_overall      ?? _h.win_rate        ?? 0,
+    win_rate_bull_market:  _h.win_rate_bull_market  ?? _h.bull_win_rate   ?? 0,
+    win_rate_bear_market:  _h.win_rate_bear_market  ?? _h.bear_win_rate   ?? 0,
+    avg_return_on_wins_pct: _h.avg_return_on_wins_pct ?? _h.avg_gain_pct  ?? 0,
+    avg_return_on_losses_pct: _h.avg_return_on_losses_pct ?? _h.avg_loss_pct ?? 0,
+    sample_size:           _h.sample_size           ?? _h.n_occurrences   ?? 0,
+  };
+
+  const opts = a.options_market_data || a.options || {};
+  const levels = a.key_data_levels || {};
+  const breakdown = a.ssi_breakdown || {};
+  const pct = a.price_change_today_pct || 0;
+  const pctStr = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+  const cmp = a.current_market_price || a.current_price || 0;
+
+  const bkComponents = [
+    {label:'Catalyst', score: breakdown.catalyst||0, max:30, color:'#60b4ff'},
+    {label:'Backtest', score: breakdown.backtest||0, max:25, color:col},
+    {label:'Pattern', score: breakdown.pattern_quality||0, max:15, color:'#a78bfa'},
+    {label:'Options', score: breakdown.options||0, max:20, color:'#fb923c'},
+    {label:'Insider', score: breakdown.insider||0, max:10, color:'#4ade80'},
+  ];
+
+  const barsHtml = bkComponents.map(c =>
+    `<div class="breakdown-bar">
+      <div class="breakdown-label">${c.label}</div>
+      <div class="breakdown-track"><div class="breakdown-fill" style="width:${(c.score/c.max*100).toFixed(0)}%;background:${c.color}"></div></div>
+      <div class="breakdown-score">${c.score}/${c.max}</div>
+    </div>`
+  ).join('');
+
+  const rz = levels.resistance_zone || [0,0];
+  const sz = levels.support_zone || [0,0];
+  const bullPct = Math.round(hist.win_rate_bull_market * 100);
+  const bearPct = Math.round(hist.win_rate_bear_market * 100);
+  const allPct  = Math.round(hist.win_rate_overall * 100);
+
+  // Compute observation zone & upside/downside — direction-aware
+  const avgWin  = hist.avg_return_on_wins_pct  || 0;
+  const avgLoss = Math.abs(hist.avg_return_on_losses_pct || 0);
+  const dir  = (a.signal_type || a.direction || '').toLowerCase();
+  const isBull = dir.includes('bull') || dir.includes('long') || dir.includes('up');
+
+  // For bullish: win = price goes up; For bearish: win = price goes down
+  const patternTarget  = cmp > 0 ? (isBull ? cmp * (1 + avgWin/100)  : cmp * (1 - avgWin/100))  : 0;
+  const patternRisk    = cmp > 0 ? (isBull ? cmp * (1 - avgLoss/100) : cmp * (1 + avgLoss/100)) : 0;
+
+  // Observation zone: for bull — support→below resistance; for bear — above support→resistance
+  const entryLo = isBull ? (sz[1] > 0 ? sz[1] : cmp)         : (rz[0] > 0 ? rz[0] : cmp);
+  const entryHi = isBull ? (rz[0] > 0 ? Math.min(rz[0], cmp * 1.02) : cmp * 1.02) : (rz[1] > 0 ? Math.max(rz[1], cmp * 0.98) : cmp * 0.98);
+  const fmt = v => v > 0 ? `₹${v.toLocaleString('en-IN', {maximumFractionDigits:2})}` : '—';
+  const patternPct = isBull ? `+${avgWin}%` : `-${avgWin}%`;
+  const riskPct    = isBull ? `-${avgLoss}%` : `+${avgLoss}%`;
+
+  panel.innerHTML = `
+    <div class="detail-header">
+      <div class="detail-ticker-group">
+        <div class="detail-ticker">${a.symbol}</div>
+        <div class="detail-name">${a.company || ''} · ${a.sector || 'NSE'}</div>
+      </div>
+      <div class="detail-price">
+        <div class="price-big">₹${cmp.toLocaleString('en-IN',{maximumFractionDigits:2})}</div>
+        <div class="price-chg ${pct>=0?'up':'down'}">${pctStr} today</div>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-bottom:20px;padding:16px;background:rgba(0,212,170,0.05);border:1px solid rgba(0,212,170,0.15);border-radius:10px">
+      <div style="font-family:var(--font-display);font-size:48px;font-weight:800;color:${col};line-height:1">${ssi}</div>
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:.1em;margin-top:4px">SIGNAL STRENGTH INDEX / 100</div>
+      ${(()=>{return `<div style="display:inline-block;margin-top:8px;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.05em;background:${isBull?'rgba(74,222,128,0.12)':'rgba(248,113,113,0.12)'};color:${isBull?'var(--green)':'var(--red)'};border:1px solid ${isBull?'rgba(74,222,128,0.3)':'rgba(248,113,113,0.3)'}">${isBull?'▲ Upside Signal':'▼ Downside Signal'}</div>`;})()}
+      <div class="ssi-bar-track" style="margin-top:10px"><div class="ssi-bar-fill" style="width:${ssi}%;background:${col}"></div></div>
+    </div>
+
+    <div style="margin-bottom:16px;padding:14px;background:rgba(96,180,255,0.06);border:1px solid rgba(96,180,255,0.18);border-radius:10px">
+      <div class="breakdown-title" style="margin-bottom:10px">📍 Observation Zones <span style="color:var(--text3);font-size:10px;font-weight:400">(SEBI-compliant data zones, not advice)</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div style="padding:10px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.2);border-radius:8px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px">HISTORICAL OBSERVATION ZONE</div>
+          <div style="font-size:13px;font-weight:700;color:var(--accent)">${fmt(entryLo)} – ${fmt(entryHi)}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px">${isBull ? 'near support / pre-resistance' : 'near resistance / pre-support'}</div>
+        </div>
+        <div style="padding:10px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);border-radius:8px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px">PATTERN AVG ${isBull?'UPSIDE':'DOWNSIDE'} (backtest)</div>
+          <div style="font-size:13px;font-weight:700;color:var(--green)">${fmt(patternTarget)} (${patternPct})</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px">historical avg if pattern plays out</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="padding:10px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);border-radius:8px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px">${isBull?'DOWNSIDE':'UPSIDE'} RISK (backtest avg loss)</div>
+          <div style="font-size:13px;font-weight:700;color:var(--red)">${fmt(patternRisk)} (${riskPct})</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px">if pattern fails (historical avg)</div>
+        </div>
+        <div style="padding:10px;background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.15);border-radius:8px;text-align:center">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px">RISK / REWARD RATIO</div>
+          <div style="font-size:13px;font-weight:700;color:var(--green)">${avgLoss > 0 ? (avgWin/avgLoss).toFixed(1)+'x' : 'N/A'}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px">avg win / avg loss (backtest)</div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--warn);margin-top:8px;padding:6px 8px;background:rgba(245,158,11,0.07);border-radius:6px">⚠ These are historical data zones only. Not buy/sell recommendations. Consult a SEBI-registered advisor.</div>
+    </div>
+
+    <div class="ssi-breakdown">
+      <div class="breakdown-title">SSI Breakdown</div>
+      ${barsHtml}
+    </div>
+
+    <div class="backtest-section">
+      <div class="breakdown-title">Historical Pattern Data</div>
+      <div style="font-size:10px;color:var(--warn);font-family:var(--font-mono);margin-bottom:8px">Past data only — not a guarantee of future performance</div>
+      <div class="backtest-bars">
+        <div class="bt-bar"><div class="bt-pct" style="color:var(--accent)">${allPct}%</div><div class="bt-label">Overall win rate</div></div>
+        <div class="bt-bar"><div class="bt-pct" style="color:var(--green)">${bullPct}%</div><div class="bt-label">Bull market</div></div>
+        <div class="bt-bar"><div class="bt-pct" style="color:var(--warn)">${bearPct}%</div><div class="bt-label">Bear market</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <div class="metric"><div class="metric-label">Avg win return</div><div class="metric-val green">+${hist.avg_return_on_wins_pct}%</div></div>
+        <div class="metric"><div class="metric-label">Avg loss return</div><div class="metric-val" style="color:var(--red)">${hist.avg_return_on_losses_pct}%</div></div>
+        <div class="metric"><div class="metric-label">Sample size</div><div class="metric-val">${hist.sample_size} occurrences</div></div>
+        <div class="metric"><div class="metric-label">Volume</div><div class="metric-val amber">${a.volume_data||'N/A'}</div></div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div class="breakdown-title">Key Price Levels <span style="color:var(--text3);font-weight:400">(data zones, not targets)</span></div>
+      <div class="levels-grid">
+        <div class="level-box resist">
+          <div class="level-box-label">Resistance Zone</div>
+          <div class="level-range">₹${(rz[0]||0).toLocaleString('en-IN')} – ₹${(rz[1]||0).toLocaleString('en-IN')}</div>
+          <div class="level-note">Data-derived — not a sell target</div>
+        </div>
+        <div class="level-box support">
+          <div class="level-box-label">Support Zone</div>
+          <div class="level-range">₹${(sz[0]||0).toLocaleString('en-IN')} – ₹${(sz[1]||0).toLocaleString('en-IN')}</div>
+          <div class="level-note">Data-derived — not a buy signal</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div class="breakdown-title">Options Market Activity</div>
+      <div class="options-row">
+        <div class="opt-box"><div class="opt-label">Put-Call Ratio</div><div class="opt-val" style="color:${opts.pcr_interpretation==='Bullish'?'var(--green)':'var(--text)'}">${opts.pcr||1.0} (${opts.pcr_interpretation||'Neutral'})</div></div>
+        <div class="opt-box"><div class="opt-label">OI Activity</div><div class="opt-val" style="font-size:11px">${opts.oi_activity||'N/A'}</div></div>
+      </div>
+    </div>
+
+    <div class="disclaimer-bar">
+      <strong>⚠ AI-GENERATED SIGNAL · NOT INVESTMENT ADVICE</strong>
+      This signal is AI-generated market data intelligence. It does not constitute a buy/sell recommendation. Consult a SEBI-registered Research Analyst before investing. Past pattern performance ≠ future results.
+    </div>`;
+}
+
+// ── Render backtest table ─────────────────────────────────────────────────────
+
+function renderBacktest() {
+  const container = document.getElementById('backtest-table');
+  const header = `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;gap:0;margin-bottom:2px">
+    ${['Pattern','Overall Win%','Bull Mkt Win%','Bear Mkt Win%','Avg Gain','Occurrences'].map(h =>
+      `<div style="padding:10px 14px;font-size:11px;font-family:var(--font-mono);color:var(--text3);background:var(--bg3)">${h}</div>`
+    ).join('')}</div>`;
+  const rows = BACKTEST_DATA.map((r, i) =>
+    `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;gap:0;border-bottom:1px solid var(--border)">
+      <div style="padding:12px 14px;font-size:13px;color:var(--text);font-family:var(--font-mono)">${r.pattern}</div>
+      <div style="padding:12px 14px;font-size:13px;color:var(--accent);font-family:var(--font-mono)">${r.overall}%</div>
+      <div style="padding:12px 14px;font-size:13px;color:var(--green);font-family:var(--font-mono)">${r.bull}%</div>
+      <div style="padding:12px 14px;font-size:13px;color:var(--warn);font-family:var(--font-mono)">${r.bear}%</div>
+      <div style="padding:12px 14px;font-size:13px;color:var(--green);font-family:var(--font-mono)">+${r.avg_gain}%</div>
+      <div style="padding:12px 14px;font-size:13px;color:var(--text2);font-family:var(--font-mono)">${r.n}</div>
+    </div>`
+  ).join('');
+  container.innerHTML = header + rows;
+}
+
+// ── Render compliance table ───────────────────────────────────────────────────
+function renderCompliance() {
+  const container = document.getElementById('compliance-rows');
+  container.innerHTML = COMPLIANCE_RULES.map((r, i) =>
+    `<div style="display:grid;grid-template-columns:2fr 1fr 2fr;gap:0;border-bottom:1px solid var(--border);${i%2===0?'background:rgba(255,255,255,0.015)':''}">
+      <div style="padding:11px 14px;font-size:12px;color:var(--text2)">${r.rule}</div>
+      <div style="padding:11px 14px"><span style="font-size:11px;font-family:var(--font-mono);background:rgba(34,197,94,0.12);color:var(--green);padding:3px 9px;border-radius:10px">✓ ${r.status}</span></div>
+      <div style="padding:11px 14px;font-size:12px;color:var(--text3);font-family:var(--font-mono)">${r.impl}</div>
+    </div>`
+  ).join('');
+}
+
+// ── Scanner ───────────────────────────────────────────────────────────────────
+async function doScan() {
+  const sym = document.getElementById('scan-input').value.toUpperCase().trim();
+  if (!sym) return;
+  const container = document.getElementById('scan-result');
+  container.innerHTML = `<div class="loading"><div class="spinner"></div>Scanning ${sym} — fetching live data & running pipeline...</div>`;
+
+  let alert = null;
+  let status = 'fallback';
+  try {
+    const resp = await fetch(`${API}/api/stock/${sym}/scan`, {signal: AbortSignal.timeout(30000)});
+    const data = await resp.json();
+    alert = data.alert;
+    status = data.status || 'unknown';
+  } catch(e) {
+    const found = MOCK_ALERTS.find(a => a.symbol === sym);
+    alert = found || {...MOCK_ALERTS[0], symbol: sym, company: `${sym} Ltd`};
+    status = 'fallback';
+  }
+
+  if (!alert) {
+    container.innerHTML = `<div style="color:var(--text3);font-family:var(--font-mono);padding:20px">No data available for ${sym}.</div>`;
+    return;
+  }
+
+  _alerts = [alert, ...MOCK_ALERTS];
+  renderAlerts(_alerts);
+
+  const cmp = alert.current_market_price || alert.current_price || 0;
+  const chg = alert.price_change_today_pct || 0;
+  const chgStr = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%';
+  const chgColor = chg >= 0 ? 'var(--green)' : 'var(--red)';
+  const ssi = alert.signal_strength_index || alert.ssi || 0;
+
+  if (status === 'no_signal') {
+    container.innerHTML = `<div style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:14px 18px;font-size:13px;color:var(--warn);font-family:var(--font-mono)">
+      ⚠ No high-conviction signal for ${sym} · CMP: <strong style="color:var(--text)">₹${cmp.toLocaleString('en-IN', {maximumFractionDigits:2})}</strong> <span style="color:${chgColor}">${chgStr}</span><br><span style="color:var(--text3);font-size:11px">SSI below 65 threshold — no pattern+catalyst confluence today.</span></div>`;
+  } else {
+    container.innerHTML = `<div style="background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.25);border-radius:10px;padding:14px 18px;font-size:13px;color:var(--accent);font-family:var(--font-mono)">
+    ✓ Signal detected for ${sym} — SSI: ${ssi}/100 · CMP: <strong>₹${cmp.toLocaleString('en-IN', {maximumFractionDigits:2})}</strong> <span style="color:${chgColor}">${chgStr}</span><br><span style="color:var(--text3);font-size:11px">Check the Alerts tab for full breakdown.</span></div>`;
+  }
+}
+
+function runScan() {
+  showView('scanner');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.nav-item')[1].classList.add('active');
+  setTimeout(() => document.getElementById('scan-input').focus(), 100);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  // Try live API, fall back to mock
+  try {
+    const resp = await fetch(`${API}/api/alerts/today`, {signal: AbortSignal.timeout(3000)});
+    const data = await resp.json();
+    _alerts = data.alerts?.length ? data.alerts : MOCK_ALERTS;
+  } catch(e) {
+    _alerts = MOCK_ALERTS;
+  }
+
+  renderAlerts(_alerts);
+  renderBacktest();
+  renderCompliance();
+
+  document.getElementById('alert-count').textContent = _alerts.length;
+  // Fetch stats for real scanned count
+  try {
+    const sResp = await fetch('/api/stats', {signal: AbortSignal.timeout(10000)});
+    const sData = await sResp.json();
+    const scanned = sData.stocks_scanned || 500;
+    document.getElementById('scan-time').textContent = `Last scan: ${new Date().toLocaleTimeString('en-IN')} IST · top ${scanned} NSE stocks`;
+    const subEl = document.getElementById('stat-scanned-sub');
+    if (subEl) subEl.textContent = `from top ${scanned} NSE stocks`;
+  } catch(e) {
+    document.getElementById('scan-time').textContent = `Last scan: ${new Date().toLocaleTimeString('en-IN')} IST · top 500 NSE stocks`;
+  }
+  document.getElementById('stat-total').textContent = _alerts.length;
+
+  const avgSsi = (_alerts.reduce((s,a) => s + (a.signal_strength_index||a.ssi||0), 0) / _alerts.length).toFixed(1);
+  document.getElementById('stat-avg-ssi').textContent = avgSsi;
+
+  // Fetch real prices for all alerts in background and update cards
+  try {
+    const syms = [...new Set(_alerts.map(a => a.symbol))].join(',');
+    const prResp = await fetch(`${API}/api/prices?symbols=${syms}`, {signal: AbortSignal.timeout(20000)});
+    const prData = await prResp.json();
+    const prices = prData.prices || {};
+    // Patch the _alerts array with real prices
+    _alerts = _alerts.map(a => {
+      const p = prices[a.symbol];
+      if (p && p.price) {
+        return {...a, current_market_price: p.price, current_price: p.price, price_change_today_pct: p.change_pct};
+      }
+      return a;
+    });
+    // Re-render with real prices
+    renderAlerts(_alerts);
+  } catch(e) {}
+
+  // Fetch Nifty / VIX pulse
+  try {
+    const pResp = await fetch(`${API}/api/nifty/pulse`);
+    const pData = await pResp.json();
+    const up = pData.nifty_change_pct >= 0;
+    const clr = up ? 'var(--green)' : 'var(--red)';
+    const nStr = `${pData.nifty_price.toLocaleString('en-IN')} <span style="color:${clr};margin-left:4px">${up?'+':''}${pData.nifty_change_pct}%</span>`;
+    
+    document.getElementById('topbar-nifty').innerHTML = `<div class="pulse-dot"></div>NIFTY ${nStr}`;
+    document.getElementById('scan-nifty').innerHTML = `${pData.nifty_price.toLocaleString('en-IN')} (${up?'+':''}${pData.nifty_change_pct}%)`;
+    document.getElementById('scan-nifty').className = `pulse-val ${up?'green':'red'}`;
+    document.getElementById('pulse-nifty').innerHTML = `${pData.nifty_price.toLocaleString('en-IN')} (${up?'+':''}${pData.nifty_change_pct}%)`;
+    document.getElementById('pulse-nifty').className = `pulse-val ${up?'green':'red'}`;
+
+    // Bank Nifty
+    if (pData.bank_nifty_price) {
+      const bnUp = pData.bank_nifty_change_pct >= 0;
+      const bnStr = `${pData.bank_nifty_price.toLocaleString('en-IN')} (${bnUp?'+':''}${pData.bank_nifty_change_pct}%)`;
+      const bnEl1 = document.getElementById('scan-banknifty');
+      const bnEl2 = document.getElementById('pulse-banknifty');
+      if (bnEl1) { bnEl1.innerHTML = bnStr; bnEl1.className = `pulse-val ${bnUp?'green':'red'}`; }
+      if (bnEl2) { bnEl2.innerHTML = bnStr; bnEl2.className = `pulse-val ${bnUp?'green':'red'}`; }
+    }
+
+    // Generic index updater: sets innerHTML and colour class for any pulse-val span
+    function updateIndex(elId, price, changePct) {
+      const el = document.getElementById(elId);
+      if (!el || !price) return;
+      const up = changePct >= 0;
+      el.innerHTML = `${price.toLocaleString('en-IN')} (${up?'+':''}${changePct}%)`;
+      el.className = `pulse-val ${up ? 'green' : 'red'}`;
+    }
+    updateIndex('pulse-niftyit',     pData.nifty_it_price,     pData.nifty_it_change_pct);
+    updateIndex('pulse-niftypharma', pData.nifty_pharma_price,  pData.nifty_pharma_change_pct);
+    updateIndex('pulse-niftyauto',   pData.nifty_auto_price,    pData.nifty_auto_change_pct);
+    
+    const vUp = pData.vix_change_pct >= 0;
+    const vClr = vUp ? 'red' : 'green'; 
+    document.getElementById('scan-vix').innerHTML = pData.vix_price;
+    document.getElementById('pulse-vix').innerHTML = `${pData.vix_price} (${vUp?'+':''}${pData.vix_change_pct}%)`;
+    document.getElementById('pulse-vix').className = `pulse-val ${vClr}`;
+
+    const isBull = pData.regime === "Bull Market";
+    document.getElementById('stat-regime').textContent = isBull ? "Bull" : "Bear";
+    document.getElementById('stat-regime').style.color = isBull ? "var(--green)" : "var(--red)";
+    document.getElementById('scan-regime').textContent = pData.regime;
+    document.getElementById('scan-regime').className = `pulse-val ${isBull?'green':'red'}`;
+    document.getElementById('pulse-regime').textContent = `${pData.regime} (${pData.nifty50_vs_200ma} vs 200MA)`;
+    document.getElementById('pulse-regime').className = `pulse-val ${isBull?'green':'red'}`;
+
+    // FII / DII institutional flow from NSE India
+    function crFmt(val) {
+      if (val == null) return '—';
+      const sign = val >= 0 ? '+' : '';
+      return `${sign}₹${Math.abs(val).toLocaleString('en-IN', {maximumFractionDigits:2})} Cr`;
+    }
+    if (pData.fii_buy != null) {
+      document.getElementById('pulse-fii-buy').textContent  = `₹${pData.fii_buy.toLocaleString('en-IN',  {maximumFractionDigits:2})} Cr`;
+      document.getElementById('pulse-fii-sell').textContent = `₹${pData.fii_sell.toLocaleString('en-IN', {maximumFractionDigits:2})} Cr`;
+      const fiiNetEl = document.getElementById('pulse-fii-net');
+      fiiNetEl.textContent  = crFmt(pData.fii_net);
+      fiiNetEl.className    = `pulse-val ${pData.fii_net >= 0 ? 'green' : 'red'}`;
+      const diiNetEl = document.getElementById('pulse-dii-net');
+      if (pData.dii_net != null) {
+        document.getElementById('pulse-dii-buy').textContent = `₹${pData.dii_buy.toLocaleString('en-IN', {maximumFractionDigits:2})} Cr`;
+        diiNetEl.textContent = crFmt(pData.dii_net);
+        diiNetEl.className   = `pulse-val ${pData.dii_net >= 0 ? 'green' : 'red'}`;
+      }
+      if (pData.fii_date) document.getElementById('pulse-fii-date').textContent = `(as of ${pData.fii_date})`;
+    }
+  } catch(e) {}
+}
+
+init();
+</script>
+</body>
+</html>

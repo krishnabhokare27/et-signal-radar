@@ -40,7 +40,6 @@ ET-Signal-Radar scans the NSE universe (500+ stocks) in real-time, executing hig
 | Key | Where | Time |
 |-----|-------|------|
 | `GROQ_API_KEY` | [console.groq.com](https://console.groq.com) | 2 min |
-| `TELEGRAM_BOT_TOKEN` | [@BotFather on Telegram](https://t.me/BotFather) | 2 min |
 
 3.  **Install dependencies:**
     ```bash

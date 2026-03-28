@@ -43,8 +43,9 @@ ET-Signal-Radar scans the NSE universe (500+ stocks) in real-time, executing hig
 
 3.  **Install dependencies:**
     ```bash
-    pip install fastapi uvicorn yfinance pandas
+    pip install -r requirements.txt
     pip install pandas-ta --no-deps
+    pip install fastapi uvicorn yfinance pandas
     ```
 
 4.  **Run the Backend API:**

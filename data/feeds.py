@@ -353,6 +353,13 @@ def get_mock_alert(symbol: str = "RELIANCE") -> dict:
         },
         "insider_score": 8,
         "ssi": 79,
+        "ssi_breakdown": {
+            "catalyst": 28,
+            "pattern_quality": 13,
+            "backtest": 18,
+            "options": 12,
+            "insider": 8
+        },
         "resistance_zone": [2950, 3020],
         "support_zone": [2780, 2830],
         "current_price": 2912.45,

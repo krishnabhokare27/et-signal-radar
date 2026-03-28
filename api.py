@@ -43,9 +43,30 @@ def _load_mock_alerts():
     ]
     import random
     from datetime import timedelta
+    import yfinance as yf
+    from data.feeds import resolve_ticker
+
     alerts = []
     for i, (sym, co, sec, pat, ssi, cat) in enumerate(symbols):
         mock = get_mock_alert(sym)
+        
+        # Override with real price and change %
+        try:
+            ticker = resolve_ticker(sym)
+            if ticker:
+                hist = yf.Ticker(ticker).history(period="5d")
+                if not hist.empty and len(hist) >= 2:
+                    current_price = round(float(hist['Close'].iloc[-1]), 2)
+                    prev_close = float(hist['Close'].iloc[-2])
+                    change_pct = round(((current_price - prev_close) / prev_close) * 100, 2)
+                    mock["current_price"] = current_price
+                    mock["price_change_pct"] = change_pct
+                    # Also anchor support/resistance loosely around real price
+                    mock["resistance_zone"] = [round(current_price * 1.02, 2), round(current_price * 1.05, 2)]
+                    mock["support_zone"] = [round(current_price * 0.95, 2), round(current_price * 0.98, 2)]
+        except Exception as e:
+            logger.debug(f"Failed to patch real price for mock {sym}: {e}")
+
         mock.update({
             "company": co, "sector": sec,
             "pattern_detected": pat,
